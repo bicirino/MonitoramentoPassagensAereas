@@ -1,77 +1,134 @@
-# Monitoramento de Passagens Aéreas
+# ✈️ Monitor de Passagens Aéreas
 
-# ✈️ Flight Watcher Py: Monitor de Passagens com Playwright
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/)
+[![Playwright](https://img.shields.io/badge/Playwright-Automation-2ea44f)](https://playwright.dev/python/)
+[![Tests](https://img.shields.io/badge/Tests-pytest-yellow)](https://docs.pytest.org/)
 
-[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
-[![Playwright](https://img.shields.io/badge/framework-Playwright-green.svg)](https://playwright.dev/python/)
-[![pytest](https://img.shields.io/badge/test-pytest-yellow.svg)](https://docs.pytest.org/)
+Monitor automatizado de passagens aéreas com foco no mercado brasileiro.
 
-## 📖 Sobre o Projeto
-O **Flight Watcher Py** é uma aplicação de automação e monitoramento de preços de passagens aéreas focado no mercado brasileiro (Latam, Gol, Azul). O projeto foi concebido para aplicar conceitos avançados de **Engenharia de Qualidade (QA)**, utilizando **Playwright** para extração de dados e **Pytest** para validação da integridade do sistema.
+O projeto utiliza:
 
-## 🛠️ Tecnologias
-- **Linguagem:** Python 3.11
-- **Automação Web:** Playwright
-- **Orquestração de Testes:** Pytest
-- **Banco de Dados:** SQLite (Armazenamento de histórico de preços)
-- **Configuração:** Portabilidade via `.env` (python-dotenv)
-- **Notificação:** Protocolo SMTP (Envio de Alertas por E-mail)
-- **CI/CD:** GitHub Actions (Execução agendada via Cron Job)
+- Playwright para scraping e automação de navegação
+- SQLite para persistência do histórico de preços
+- SMTP para envio de alertas por e-mail
 
-## 📋 Requisitos do Sistema
-- [x] **Web Scraping:** Navegação automatizada nos principais portais aéreos.
-- [x] **Persistência:** Registro de data, rota e preço no banco `flights.db`.
-- [x] **Lógica de Alerta:** Disparo de e-mail caso o preço atual seja inferior ao limite definido pelo usuário.
-- [x] **Configuração Segura:** Credenciais de e-mail e rotas armazenadas em variáveis de ambiente.
+## 📌 Visão Geral
 
-## 🗄️ Estrutura do Banco de Dados (SQLite)
-O sistema utiliza uma tabela `price_history` para permitir análises futuras:
-| Campo | Tipo | Descrição |
-| :--- | :--- | :--- |
-| `id` | INTEGER | Chave primária |
-| `origin` | TEXT | IATA da cidade de origem |
-| `destination` | TEXT | IATA da cidade de destino |
-| `price` | REAL | Valor da passagem |
-| `date_check` | DATETIME | Data e hora da verificação |
+O sistema consulta rotas definidas por você, registra os preços no banco de dados e dispara alertas quando o valor atingir o alvo configurado.
 
-## 🚀 Instalação e Configuração
+## ✨ Funcionalidades
 
-1. **Clone o repositório:**
-   ```bash
-   git clone [[[https://github.com/seu-usuario/flight-watcher-py.git](https://github.com/seu-usuario/flight-watcher-py.git)](https://github.com/bicirino/MonitoramentoPassagensAereas.git)](https://github.com/bicirino/MonitoramentoPassagensAereas.git)
+- Coleta automatizada de preços
+- Histórico de variação de passagens
+- Alertas por e-mail com preço-alvo
+- Execução local e via GitHub Actions
 
-Configure o ambiente:
-Crie um arquivo .env na raiz do projeto seguindo o modelo:
+## 🏗️ Estrutura do Projeto
 
-Snippet de código
-# Configurações de Busca
+```text
+flight-watcher-py/
+├── .github/
+│   └── workflows/
+│       └── daily_check.yml     # Execução agendada no GitHub Actions
+├── src/
+│   ├── database/
+│   │   └── db_handler.py       # Gerenciamento do SQLite
+│   ├── pages/
+│   │   ├── base_page.py        # Métodos genéricos do Playwright
+│   │   └── flights_page.py     # Page Objects (seletores e interações)
+│   ├── services/
+│   │   └── email_service.py    # Envio de e-mails
+│   └── utils/
+│       └── logger.py           # Logs de execução
+├── tests/
+│   ├── conftest.py             # Configurações globais do pytest
+│   ├── test_scraper.py         # Testes de extração (E2E)
+│   └── test_db.py              # Testes unitários do banco
+├── .env                        # Variáveis sensíveis (não versionar)
+├── .env.example                # Modelo de variáveis
+├── .gitignore
+├── main.py                     # Ponto de entrada
+├── requirements.txt
+└── README.md
+```
+
+## 🚀 Como Começar
+
+### 1) Pré-requisitos
+
+- Python 3.11+
+- Recomendado: ambiente virtual (venv)
+
+### 2) Instalação
+
+```bash
+# Criar ambiente virtual
+python -m venv venv
+
+# Ativar no Linux/macOS
+source venv/bin/activate
+
+# Ativar no Windows (PowerShell)
+venv\Scripts\Activate.ps1
+
+# Instalar dependências
+pip install -r requirements.txt
+
+# Instalar navegador do Playwright
+playwright install chromium
+```
+
+### 3) Configuração
+
+Copie o arquivo de exemplo e preencha as variáveis:
+
+```bash
+cp .env.example .env
+```
+
+Exemplo de configuração:
+
+```dotenv
+# Busca
 ORIGIN=GRU
 DESTINATION=FLN
-TARGET_PRICE=800.00
+TARGET_PRICE=650.00
 
-# Configurações de E-mail (SMTP)
+# Notificações
 EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
 EMAIL_USER=seu-email@gmail.com
-EMAIL_PASS=sua-senha-de-app
-Instale as dependências:
+EMAIL_PASS=sua-senha-de-app-do-google
+```
 
-Bash
-pip install -r requirements.txt
-playwright install chromium
+No Windows, se preferir, crie o arquivo `.env` manualmente com base no `.env.example`.
 
-🧪 Estratégia de Testes
-Para garantir que o scraper não quebre com mudanças nos sites, execute:
+## ▶️ Execução
 
-Rodar testes de sanidade (Check de seletores):
+```bash
+python main.py
+```
 
-Bash
-pytest tests/test_selectors.py
-Rodar testes de integração (Database & Email):
+## 🗄️ Persistência de Dados
 
-Bash
-pytest tests/test_integration.py
-⏰ Agendamento
-O projeto conta com um workflow do GitHub Actions (.github/workflows/daily_check.yml) que executa o monitoramento automaticamente todos os dias às 08:00 AM (BRT).
+Na primeira execução, o sistema cria automaticamente o arquivo `flights.db`.
 
-Este projeto é parte do meu portfólio de estudos em Testes e Automação.
+Esse banco armazena o histórico de preços para análise da flutuação ao longo do tempo.
 
+## 🧪 Testes
+
+```bash
+# Executar todos os testes
+pytest
+
+# Executar testes mostrando o navegador
+pytest --headed
+```
+
+## 🤝 Contribuição
+
+Contribuições são bem-vindas.
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature
+3. Abra um pull request com uma descrição clara das mudanças

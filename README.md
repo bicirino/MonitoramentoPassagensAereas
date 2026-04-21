@@ -38,7 +38,7 @@ O sistema utiliza uma tabela `price_history` para permitir análises futuras:
 
 1. **Clone o repositório:**
    ```bash
-   git clone [https://github.com/seu-usuario/flight-watcher-py.git](https://github.com/seu-usuario/flight-watcher-py.git)
+   git clone [[[https://github.com/seu-usuario/flight-watcher-py.git](https://github.com/seu-usuario/flight-watcher-py.git)](https://github.com/bicirino/MonitoramentoPassagensAereas.git)](https://github.com/bicirino/MonitoramentoPassagensAereas.git)
 
 Configure o ambiente:
 Crie um arquivo .env na raiz do projeto seguindo o modelo:

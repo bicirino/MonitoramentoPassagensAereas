@@ -97,7 +97,7 @@ TARGET_PRICE=650.00
 # Notificações
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
-EMAIL_USER=seu-email@gmail.com
+EMAIL_USER=gabrielcirinom@gmail.com
 EMAIL_PASS=sua-senha-de-app-do-google
 ```
 

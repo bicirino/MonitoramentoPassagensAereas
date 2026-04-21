@@ -132,3 +132,9 @@ Contribuições são bem-vindas.
 1. Faça um fork do projeto
 2. Crie uma branch para sua feature
 3. Abra um pull request com uma descrição clara das mudanças
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT.
+
+Para mais detalhes, consulte [LICENSE](LICENSE).

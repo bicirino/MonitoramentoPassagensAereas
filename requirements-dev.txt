@@ -1,0 +1,18 @@
+# Dependências de Desenvolvimento
+-r requirements.txt
+
+# Testes
+pytest>=8.0.0
+pytest-cov>=4.0.0
+
+# Code Quality
+black>=24.0.0
+flake8>=7.0.0
+isort>=5.13.0
+mypy>=1.8.0
+
+# Documentação
+sphinx>=7.0.0
+
+# Utilitários
+ipython>=8.0.0

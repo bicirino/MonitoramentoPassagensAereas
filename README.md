@@ -3,25 +3,32 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue)](https://www.python.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-Automation-2ea44f)](https://playwright.dev/python/)
 [![Tests](https://img.shields.io/badge/Tests-pytest-yellow)](https://docs.pytest.org/)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-Monitor automatizado de passagens aéreas com foco no mercado brasileiro.
-
-O projeto utiliza:
-
-- Playwright para scraping e automação de navegação
-- SQLite para persistência do histórico de preços
-- SMTP para envio de alertas por e-mail
+Monitor automatizado de passagens aéreas com foco no mercado brasileiro. Coleta preços em tempo real, registra histórico e envia alertas automáticos via e-mail.
 
 ## 📌 Visão Geral
 
-O sistema consulta rotas definidas por você, registra os preços no banco de dados e dispara alertas quando o valor atingir o alvo configurado.
+O sistema consulta rotas definidas por você, registra os preços em um banco de dados SQLite e dispara alertas via e-mail quando o valor atingir o alvo configurado. Ideal para viajantes que querem economizar comprando na melhor oportunidade.
+
+**Tecnologias principais:**
+- 🎭 **Playwright**: Automação e scraping de websites
+- 📊 **SQLite**: Persistência de histórico de preços
+- 📧 **SMTP**: Envio de alertas por e-mail
+- 🚀 **GitHub Actions**: Execução automatizada e agendada
 
 ## ✨ Funcionalidades
 
-- Coleta automatizada de preços
-- Histórico de variação de passagens
-- Alertas por e-mail com preço-alvo
-- Execução local e via GitHub Actions
+- ✅ Coleta automatizada de preços
+- ✅ Histórico completo de variação de passagens
+- ✅ Alertas por e-mail com preço-alvo atingido
+- ✅ Estatísticas e análise de tendências
+- ✅ Execução local ou via GitHub Actions
+- ✅ CLI para gerenciamento e consulta de dados
+- ✅ Retry automático com backoff
+- ✅ Logs estruturados e persistentes
+- ✅ Validação robusta de configuração
+- ✅ Testes abrangentes (unitários + E2E)
 
 ## 🏗️ Estrutura do Projeto
 
@@ -31,28 +38,50 @@ flight-watcher-py/
 │   └── workflows/
 │       └── daily_check.yml     # Execução agendada no GitHub Actions
 ├── src/
-│   ├── database/
+MonitoramentoPassagensAereas/
 │   │   └── db_handler.py       # Gerenciamento do SQLite
 │   ├── pages/
-│   │   ├── base_page.py        # Métodos genéricos do Playwright
+│       └── daily_check.yml         # Execução diária agendada
 │   │   └── flights_page.py     # Page Objects (seletores e interações)
-│   ├── services/
-│   │   └── email_service.py    # Envio de e-mails
+│   ├── __init__.py
+│   ├── config.py                   # Gerenciamento de configuração
+│   ├── constants.py                # Constantes globais
+│   ├── exceptions.py               # Exceções customizadas
+│   ├── database/
+│   │   ├── __init__.py
+│   │   └── db_handler.py           # Operações no SQLite
 │   └── utils/
-│       └── logger.py           # Logs de execução
-├── tests/
+│   │   ├── __init__.py
+│   │   ├── base_page.py            # Classe base Playwright
+│   │   └── flights_page.py         # Page Object para scraping
 │   ├── conftest.py             # Configurações globais do pytest
-│   ├── test_scraper.py         # Testes de extração (E2E)
+│   │   ├── __init__.py
+│   │   └── email_service.py        # Envio de e-mails SMTP
 │   └── test_db.py              # Testes unitários do banco
-├── .env                        # Variáveis sensíveis (não versionar)
+│       ├── __init__.py
+│       ├── logger.py               # Configuração de logs
+│       └── helpers.py              # Funções auxiliares
 ├── .env.example                # Modelo de variáveis
-├── .gitignore
-├── main.py                     # Ponto de entrada
-├── requirements.txt
+│   ├── conftest.py                 # Fixtures do pytest
+│   ├── test_config.py              # Testes de configuração
+│   ├── test_db.py                  # Testes do banco de dados
+│   ├── test_scraper.py             # Testes de scraping
+│   └── test_services.py            # Testes de serviços
+├── main.py                         # Ponto de entrada principal
+├── cli.py                          # Interface de linha de comando
+├── requirements.txt                # Dependências
+├── requirements-dev.txt            # Dependências de desenvolvimento
 └── README.md
 ```
-
-## 🚀 Como Começar
+├── .gitignore
+├── .editorconfig                   # Configuração de editor
+├── .pre-commit-config.yaml         # Pre-commit hooks
+├── pytest.ini                      # Configuração pytest
+├── LICENSE                         # Licença MIT
+├── README.md                       # Este arquivo
+├── DEVELOPMENT.md                  # Guia de desenvolvimento
+├── CHANGELOG.md                    # Histórico de mudanças
+└── TROUBLESHOOTING.md              # Solução de problemas
 
 ### 1) Pré-requisitos
 
@@ -125,6 +154,24 @@ pytest
 pytest --headed
 ```
 
+## 🖥️ Interface de Linha de Comando (CLI)
+
+Gerencie dados e configure o sistema via CLI:
+
+```bash
+# Testar conexão com servidor SMTP
+python cli.py test-email
+
+# Exibir estatísticas dos últimos 30 dias
+python cli.py stats -d 30
+
+# Exibir histórico de preços
+python cli.py history -d 7 -l 10
+
+# Limpar registros com mais de 90 dias
+python cli.py clear -d 90
+```
+
 ## 🤝 Contribuição
 
 Contribuições são bem-vindas.
@@ -133,8 +180,28 @@ Contribuições são bem-vindas.
 2. Crie uma branch para sua feature
 3. Abra um pull request com uma descrição clara das mudanças
 
+Para mais detalhes, consulte [DEVELOPMENT.md](DEVELOPMENT.md).
+
 ## 📄 Licença
 
 Este projeto está sob a licença MIT.
 
 Para mais detalhes, consulte [LICENSE](LICENSE).
+
+## 📚 Documentação Adicional
+
+- **[DEVELOPMENT.md](DEVELOPMENT.md)** - Guia completo para desenvolvedores
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Solução de problemas e FAQ
+- **[CHANGELOG.md](CHANGELOG.md)** - Histórico de mudanças
+
+## 🆘 Suporte
+
+Tem dúvidas ou encontrou um problema?
+
+1. Consulte [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+2. Verifique os logs em `logs/monitor.log`
+3. Abra uma [issue no GitHub](https://github.com/seu-usuario/MonitoramentoPassagensAereas/issues)
+
+---
+
+**Made with ❤️ para viajantes que querem economizar** ✈️

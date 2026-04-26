@@ -1,75 +1,149 @@
-import os
+"""Ponto de entrada principal do sistema de monitoramento de passagens aéreas."""
 
-from dotenv import load_dotenv
+import sys
+import logging
+
 from playwright.sync_api import sync_playwright
 
+from src.config import Config
 from src.database.db_handler import FlightPriceDB
+from src.exceptions import ConfigurationError, DatabaseError, EmailError, ScraperError, FlightWatcherException
 from src.pages.flights_page import FlightsPage
 from src.services.email_service import EmailService
 from src.utils.logger import get_logger
 
 
-def as_bool(value: str, default: bool = True) -> bool:
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
-
-
-def main() -> None:
-    load_dotenv()
+def main() -> int:
+    """Função principal do aplicativo.
+    
+    Retorna:
+        0: Sucesso
+        1: Erro de configuração
+        2: Erro de scraping
+        3: Erro de banco de dados
+        4: Erro de e-mail
+    """
     logger = get_logger()
 
-    origin = os.getenv("ORIGIN", "GRU")
-    destination = os.getenv("DESTINATION", "FLN")
-    target_price = float(os.getenv("TARGET_PRICE", "650"))
-    flights_url = os.getenv("FLIGHTS_URL", "https://www.google.com/travel/flights")
-    headless = as_bool(os.getenv("HEADLESS", "true"), default=True)
+    try:
+        # Carregar configuração
+        logger.info("=" * 60)
+        logger.info("🚀 Iniciando Monitor de Passagens Aéreas")
+        logger.info("=" * 60)
 
-    db = FlightPriceDB("flights.db")
+        config = Config()
+        logger.info("✓ Configuração carregada com sucesso")
+        logger.debug(f"Configurações: {config.to_dict()}")
 
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=headless)
-        page = browser.new_page()
+        # Inicializar banco de dados
+        db = FlightPriceDB(logger=logger)
+        logger.info("✓ Banco de dados inicializado")
 
-        flights_page = FlightsPage(page, logger=logger)
-        flights_page.open_search_page(flights_url)
-        current_price = flights_page.extract_lowest_price()
-        browser.close()
+        # Iniciar browser e scraping
+        logger.info(f"📍 Monitorando rota: {config.origin} → {config.destination}")
+        logger.info(f"💰 Preço alvo: R$ {config.target_price:.2f}")
 
-    if current_price is None:
-        logger.warning("Execução finalizada sem preço válido para registro.")
-        return
+        current_price = None
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=config.headless)
+            page = browser.new_page()
 
-    db.insert_price(origin=origin, destination=destination, price=current_price)
-    logger.info(
-        "Preço salvo no banco | rota=%s-%s | valor=R$ %.2f",
-        origin,
-        destination,
-        current_price,
-    )
+            try:
+                flights_page = FlightsPage(page, logger=logger)
+                flights_page.open_search_page(config.flights_url)
+                current_price = flights_page.extract_lowest_price()
+                logger.debug(f"URL atual: {flights_page.get_page_url()}")
+            finally:
+                browser.close()
+                logger.info("✓ Browser encerrado")
 
-    if current_price <= target_price:
-        logger.info("Preço alvo atingido. Enviando alerta por e-mail.")
-        email_service = EmailService(
-            host=os.getenv("EMAIL_HOST", "smtp.gmail.com"),
-            port=int(os.getenv("EMAIL_PORT", "587")),
-            username=os.getenv("EMAIL_USER", ""),
-            password=os.getenv("EMAIL_PASS", ""),
-        )
+        # Validar preço extraído
+        if current_price is None:
+            logger.warning("⚠️  Execução finalizada - nenhum preço válido foi encontrado")
+            return 0
 
-        to_email = os.getenv("EMAIL_TO", os.getenv("EMAIL_USER", ""))
-        email_service.send_alert(
-            to_email=to_email,
-            subject=f"[Alerta] Passagem {origin} -> {destination}",
-            body=(
-                f"O preço da rota {origin} -> {destination} atingiu R$ {current_price:.2f}.\n"
-                f"Preço alvo configurado: R$ {target_price:.2f}."
-            ),
-        )
-        logger.info("Alerta enviado para %s", to_email)
-    else:
-        logger.info("Preço ainda acima do alvo configurado.")
+        # Salvar preço no banco
+        try:
+            price_id = db.insert_price(
+                origin=config.origin,
+                destination=config.destination,
+                price=current_price,
+                currency=config.currency,
+            )
+            logger.info(
+                f"✓ Preço salvo no banco | "
+                f"rota={config.origin}-{config.destination} | "
+                f"valor=R$ {current_price:.2f} | ID={price_id}"
+            )
+        except DatabaseError as e:
+            logger.error(f"Erro ao salvar preço: {e}")
+            return 3
+
+        # Verificar se atingiu preço-alvo
+        if current_price <= config.target_price:
+            logger.info("🎯 Preço alvo atingido!")
+            logger.info(f"📧 Enviando alerta de preço...")
+
+            try:
+                email_service = EmailService(
+                    host=config.email_host,
+                    port=config.email_port,
+                    username=config.email_user,
+                    password=config.email_pass,
+                    logger=logger,
+                )
+
+                subject = f"✈️ [ALERTA] Passagem {config.origin} → {config.destination}"
+                body = (
+                    f"🎉 Alerta de Preço de Passagem\n\n"
+                    f"Rota: {config.origin} → {config.destination}\n"
+                    f"Preço encontrado: R$ {current_price:.2f}\n"
+                    f"Preço alvo: R$ {config.target_price:.2f}\n"
+                    f"Diferença: R$ {config.target_price - current_price:.2f} de desconto!\n\n"
+                    f"Verifique os detalhes em: {config.flights_url}"
+                )
+
+                email_service.send_alert(
+                    to_email=config.email_to,
+                    subject=subject,
+                    body=body,
+                )
+            except EmailError as e:
+                logger.error(f"❌ Falha ao enviar e-mail: {e}")
+                return 4
+        else:
+            logger.info(
+                f"ℹ️  Preço acima do alvo | "
+                f"Diferença: R$ {current_price - config.target_price:.2f}"
+            )
+
+        logger.info("=" * 60)
+        logger.info("✓ Execução finalizada com sucesso")
+        logger.info("=" * 60)
+        return 0
+
+    except ConfigurationError as e:
+        logger.error(f"❌ Erro de configuração: {e}")
+        logger.info("💡 Dica: Verifique o arquivo .env e execute 'cp .env.example .env'")
+        return 1
+
+    except ScraperError as e:
+        logger.error(f"❌ Erro ao fazer scraping: {e}")
+        return 2
+
+    except FlightWatcherException as e:
+        logger.error(f"❌ Erro no aplicativo: {e}")
+        return 1
+
+    except KeyboardInterrupt:
+        logger.warning("⚠️  Execução interrompida pelo usuário")
+        return 1
+
+    except Exception as e:
+        logger.error(f"❌ Erro inesperado: {e}", exc_info=True)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    exit_code = main()
+    sys.exit(exit_code)
